@@ -11,16 +11,14 @@
 uint8_t readRegister(uint8_t addr);
 void writeRegister(uint8_t addr, uint8_t val);
 
-MPU6500::MPU6500(SPIClass &vspi): vspi(vspi) {}
+MPU6500::MPU6500(): spi(NULL) {}
 
 bool MPU6500::_setupDone = false;
 MPU6500::intr MPU6500::_interface = MPU6500::I2C;
 
-//SPIClass *vspi = NULL;
-
 uint8_t buf[15];
 
-void MPU6500::setup(MPU6500::intr interface)
+void MPU6500::setup(MPU6500::intr interface, void *intr_handler)
 {
   if (!MPU6500::_setupDone) {
 
@@ -40,7 +38,8 @@ void MPU6500::setup(MPU6500::intr interface)
       case MPU6500::SPI : {
           pinMode(SPI_CS, OUTPUT);
           digitalWrite(SPI_CS, HIGH);
-          this->vspi.begin();
+          this->spi = (SPIClass *)intr_handler;
+          this->spi->begin();
 
           writeRegister(PWR_MGMT_1, 0x81);
           delay(100);
@@ -89,11 +88,11 @@ void MPU6500::rawspiSample(uint8_t (&values)[12])
 
   buf[0] = 0x80 | ACCEL_XOUT_H;
 
-  this->vspi.beginTransaction(SPISettings(SPI_DATA_FREQ, MSBFIRST, SPI_MODE3));
+  this->spi->beginTransaction(SPISettings(SPI_DATA_FREQ, MSBFIRST, SPI_MODE3));
   digitalWrite(SPI_CS, LOW);
-  this->vspi.transfer(buf, 15);
+  this->spi->transfer(buf, 15);
   digitalWrite(SPI_CS, HIGH);
-  this->vspi.endTransaction();
+  this->spi->endTransaction();
 
   values[0] = buf[1]; values[1] = buf[2];
   values[2] = buf[3]; values[3] = buf[4];
@@ -110,11 +109,11 @@ void MPU6500::spiSample(double (&values)[6])
 
   buf[0] = 0x80 | ACCEL_XOUT_H;
 
-  this->vspi.beginTransaction(SPISettings(SPI_DATA_FREQ, MSBFIRST, SPI_MODE3));
+  this->spi->beginTransaction(SPISettings(SPI_DATA_FREQ, MSBFIRST, SPI_MODE3));
   digitalWrite(SPI_CS, LOW);
-  this->vspi.transfer(buf, 15);
+  this->spi->transfer(buf, 15);
   digitalWrite(SPI_CS, HIGH);
-  this->vspi.endTransaction();
+  this->spi->endTransaction();
 
   values[0] = (int16_t)(buf[1] << 8 | buf[2]);
   values[1] = (int16_t)(buf[3] << 8 | buf[4]);
@@ -180,13 +179,13 @@ void MPU6500::calibrate()
 
 uint8_t MPU6500::spiReadRegister(uint8_t addr) {
 
-  this->vspi.beginTransaction(SPISettings(SPI_SETUP_FREQ, MSBFIRST, SPI_MODE3));
+  this->spi->beginTransaction(SPISettings(SPI_SETUP_FREQ, MSBFIRST, SPI_MODE3));
 
   digitalWrite(SPI_CS, LOW);
-  uint16_t reg = this->vspi.transfer16((0x80 | addr) << 8);
+  uint16_t reg = this->spi->transfer16((0x80 | addr) << 8);
   digitalWrite(SPI_CS, HIGH);
 
-  this->vspi.endTransaction();
+  this->spi->endTransaction();
 
   return (uint8_t)reg;
 
@@ -194,11 +193,11 @@ uint8_t MPU6500::spiReadRegister(uint8_t addr) {
 
 void MPU6500::spiWriteRegister(uint8_t addr, uint8_t val) {
 
-  this->vspi.beginTransaction(SPISettings(SPI_SETUP_FREQ, MSBFIRST, SPI_MODE3));
+  this->spi->beginTransaction(SPISettings(SPI_SETUP_FREQ, MSBFIRST, SPI_MODE3));
   digitalWrite(SPI_CS, LOW);
-  this->vspi.transfer16(((0x00 | addr) << 8) | val);
+  this->spi->transfer16(((0x00 | addr) << 8) | val);
   digitalWrite(SPI_CS, HIGH);
-  this->vspi.endTransaction();
+  this->spi->endTransaction();
   
 }
 

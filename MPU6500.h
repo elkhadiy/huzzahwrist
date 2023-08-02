@@ -9,7 +9,7 @@
 #include "SPI.h"
 
 constexpr uint32_t SAMPLING_DELAY = 110;
-constexpr uint8_t  SPI_CS         = 21;
+constexpr uint8_t  SPI_CS         = 14;
 constexpr uint64_t SPI_SETUP_FREQ = 1000000UL;
 constexpr uint64_t SPI_DATA_FREQ  = 20000000UL;
 constexpr uint8_t  I2C_ADDR       = 0b1101000; // PS-MPU-6500A-01 page 12
@@ -29,12 +29,12 @@ class MPU6500
       SPI
     };
 
-    MPU6500(SPIClass &vspi);
+    MPU6500();
 
     // TODO: some error handling and be careful:
     // https://stackoverflow.com/questions/52221727/arduino-wire-library-returning-error-code-7-which-is-not-defined-in-the-library
 
-    void setup(MPU6500::intr interface);
+    void setup(MPU6500::intr interface, void *intr_handler);
 
     void calibrate();
 
@@ -54,7 +54,7 @@ class MPU6500
     static MPU6500::intr _interface;
 
   private:
-    SPIClass &vspi;
+    SPIClass *spi;
 };
 
 #endif
